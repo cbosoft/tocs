@@ -1,0 +1,12 @@
+My Flat
+Office Area
+A window to the east, computer on the desk to the south, there is a chair and a pile of crap to the north. The room continues to the west.
+0,0,0,0,0,0,1,0
+tspawn
+endcell
+Kitchen Area
+Small kitchenette. Cooker, oven, sink to the north, plant and table to the south. The room continues to the east, there is a door to the west.
+1,1,0,1,1,1,1,1
+cspawn
+endcell
+endmap

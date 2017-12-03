@@ -4,6 +4,6 @@ Text-Only CounterStrike
 
 (see [xkcd #91](https://xkcd.com/91))
 
-My fifth year writing a version of this (spanning four computers and three languages).
+My fifth year writing a version of this (spanning four computers and ~~three~~ four languages).
 
 *Hopefully I'll actually finish this one.* :+1:
