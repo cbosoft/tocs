@@ -24,7 +24,7 @@ typedef std::map<std::tuple<int, std::string >, int > utr;
 typedef std::vector<std::string> strvec;
 utr dictionary;
 Map game_map;
-std::vector<Player> players;
+std::vector<Player*> players;
 std::vector<Item> global_inventory;
 std::vector<Weapon> global_arsenal;
 strvec a_sitreps;
@@ -43,20 +43,22 @@ void read_sitreps(std::string, strvec &, strvec &, strvec &);
 int get_clean_input(std::string, int);
 std::string get_raw_lower_input(std::string, bool);
 int randint(int, int);
-std::string get_randj_statement(int);
+std::string get_rand_sitrep(int);
 void get_maps(std::string, strvec &);
 void quick_setup();
 void game_loop();
 void read_inventory(std::string);
 void read_arsenal(std::string);
 void read_names(std::string);
-bool is_game_over();
+int game_status();
+void display();
 
 namespace po = boost::program_options;
 
 //************************************************************************//
 //************************************************************************//
 int main(int argc, char *argv[]){
+  srand(std::time(0));
   std::string sitrep_file, inv_file, arsenal_file, names_file, maps_dir;
 
   po::options_description desc("Allowed options");
@@ -101,14 +103,16 @@ int main(int argc, char *argv[]){
   std::cout << "" << std::endl;
   std::cout << "  would you like to setup a new game, or play a quick game?" << std::endl;
   repl = get_clean_input(pr_str, 0);
-
+  
   switch (repl){
   case 0:
     // new game
+    if (verbose){std::cout << "  setting up new game" << std::endl;}
     // TODO
     break;
   case 1:
     // quick game
+    if (verbose){std::cout << "  setting up quick game" << std::endl;}
     quick_setup();
     break;
   default:
@@ -117,49 +121,182 @@ int main(int argc, char *argv[]){
   }
 
   std::cout << "\n  starting game as a ";
-  if (players[0].isCT){
+  if (players[0]->isCT){
     std::cout << "counter-";
   }
-  std::cout << "terrorist, codename: \"" << players[0].Name << "\" on map: \"" << game_map.Name << "\"\n" << std::endl;
+  std::cout << "terrorist, codename: \"" << players[0]->Name << "\" on map: \"" << game_map.Name << "\" with " << players.size() << " players\n" << std::endl;
   
   // start game loop!
-  //game_loop();
+  game_loop();
   return 0;
 }
 
 //************************************************************************//
 //************************************************************************//
 void game_loop(){
-  while(!is_game_over()){
+  int status = 0;
+  while(status == 0){
+    status = game_status();
     // display current cell
-    // how many people in this cell?
-    // describe it appropriately
+    display();
     // get user input
+    get_clean_input(pr_str, 2);
+  }
+
+  switch (status) {
+  case -4:
+    // Player quit
+    break;
+  case -3:
+    // Time ran out: Counter Terrorists (!Player) win.
+  case -2:
+    // Bomb went off: Terrorists (!Player) win.
+    break;
+  case -1:
+    // Player died.
+    break;
+  case 1:
+    // All terrorists dead: Counter Terrorists (+Player) win.
+    break;
+  case 2:
+    // Bomb went off: Terrorists (+Player) win.
+    break;
+  case 3:
+    // Time ran out: Counter Terrorists (+Player) win.
+    break;
   }
 }
 
 //************************************************************************//
 //************************************************************************//
-bool is_game_over(){
-  return false;
+void display(){
+  std::cout << "  [" << game_map.timer << "s to go]  [HP:" << players[0]->HP << "]\n" << std::endl;
+  std::cout << "  " << players[0]->Position->Description << std::endl << "\n  ";
+  int plc = 0;
+  std::string inb = "";
+  std::vector<std::string> also_here;
+  
+  for (size_t i = 1; i < players.size(); i++){
+    if (players[i]->Position->ID == players[0]->Position->ID){
+      plc += 1;
+      also_here.push_back(players[i]->Name);
+    }
+  }
+  
+  if (plc > 1){
+    plc = 2;
+  }
+  else if (plc == 1){
+    plc = 1;
+  }
+  else{
+    plc = 0;
+    std::cout << " ";
+  }
+
+  for (int i = 0; i < also_here.size(); i++){
+    if (i > 1){
+      std::cout << ", " << also_here[i];
+    }
+    else if (i == (also_here.size() - 2)){
+      std::cout << ", and " << also_here[i];
+    }
+    else if (i == 0){
+      std::cout << "  " << also_here[i];
+    }
+  }
+  std::cout << " " << get_rand_sitrep(plc) << std::endl;
+}
+
+//************************************************************************//
+//************************************************************************//
+int game_status(){
+  if (players[0]->Dead()){
+    return -1; // you died
+  }
+  else if (players[0]->isCT){
+    // Counter terrorist team
+
+    // All terrorists dead?
+    bool all_t_dead = true;
+    for (int i = 1; i < players.size(); i++){
+      if (!players[i]->isCT && !players[i]->Dead()){
+	all_t_dead = false;
+      }
+    }
+    if (all_t_dead)
+      return 1;
+
+    // Bomb gone off?
+    if ((game_map.abomb_planted && game_map.abomb_timer == 0) ||
+	(game_map.bbomb_planted && game_map.bbomb_timer == 0)) {
+      return -2;
+    }
+
+    if (game_map.timer == 0){
+      return 3;
+    }
+  }
+  else{
+    // Terrorist team
+
+    // All CT dead?
+    bool all_t_dead = true;
+    for (int i = 1; i < players.size(); i++){
+      if (!players[i]->isCT && !players[i]->Dead()){
+	all_t_dead = false;
+      }
+    }
+    if (all_t_dead)
+      return 1;
+
+    // Bomb gone off?
+    if ((game_map.abomb_planted && game_map.abomb_timer == 0) ||
+	(game_map.bbomb_planted && game_map.bbomb_timer == 0)) {
+      return 2;
+    }
+
+    if (game_map.timer == 0){
+      return -3;
+    }
+  }
+  return 0;
 }
 
 //************************************************************************//
 //************************************************************************//
 void quick_setup(){
   game_map.read_file(maps[randint(maps.size(), 0)], verbose);
-
+  int cts = game_map.find_C_spawn(), ts = game_map.find_T_spawn();
   int nop = randint(5, 3);
   bool oe_team = (randint(2,1) == 2);
+  Player *p;
+  if (verbose){std::cout << "  setting up players" << std::endl;}
   for (int i = 0; i < nop; i++){
-    players.push_back(Player());
-    players[i].isCT = oe_team;
-    players[i].Name = names[randint(names.size(), 0)];
+    p = new Player;
+    p->isCT = oe_team;
+    p->Name = names[randint(int(names.size()), 0)];
+    if (oe_team){
+      p->Position = &game_map.Cells[cts];
+    }
+    else{
+      p->Position = &game_map.Cells[ts];
+    }
+    if (verbose){ std::cout << "  > created player \"" << p->Name << "\"" << std::endl;}
+    players.push_back(p);
   }
   for (int i = 0; i < nop; i++){
-    players.push_back(Player());
-    players[i + nop].isCT = oe_team;
-    players[i + nop].Name = names[randint(names.size(), 0)];
+    p = new Player;
+    p->isCT = !oe_team;
+    p->Name = names[randint(names.size(), 0)];
+    if (!oe_team){
+      p->Position = &game_map.Cells[cts];
+    }
+    else{
+      p->Position = &game_map.Cells[ts];
+    }
+    if (verbose){ std::cout << "  > created player \"" << p->Name << "\"" << std::endl;}
+    players.push_back(p);
   }
 }
 
@@ -271,15 +408,15 @@ int get_clean_input(std::string prompt, int context){
   
   while (! isokay){
     if (isfirst){
-      inp_raw = get_raw_lower_input(prompt);
+      inp_raw = get_raw_lower_input("  " + prompt);
     }
     else {
       
-      inp_raw = get_raw_lower_input("( ? ) " + prompt);
+      inp_raw = get_raw_lower_input("?)" + prompt);
     }
 
     retv = dictionary[std::make_tuple(context, inp_raw)];
-
+    
     if (retv > 0){
       isokay = true;
     }
@@ -294,7 +431,6 @@ int get_clean_input(std::string prompt, int context){
 //************************************************************************//
 //************************************************************************//
 int randint(int max, int min){
-  srand(time(NULL));
   return rand() % max + min;
 }
 

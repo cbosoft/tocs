@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "std_includes.h"
 #include "map.h"
 #include "cell.h"
@@ -34,6 +35,7 @@ void Map::read_file(std::string mpath, bool verbose){
     if (verbose){std::cout << "    > cell \"" << line << "\"" << std::flush;}
     t_cell.Name = line;
     std::getline(mapf, line, '\n');
+    std::replace(line.begin(), line.end(), '#', '\n');
     t_cell.Description = line;
     
     t_cell.isCspawn = false;
@@ -75,4 +77,23 @@ void Map::read_file(std::string mpath, bool verbose){
     t_cell.ID = Cells.size();
     Cells.push_back(t_cell);
   }
+}
+
+int Map::find_T_spawn(){
+  for (int i = 0; i < Cells.size(); i++){
+    if (Cells[i].isTspawn){
+      return i;
+    }
+  }
+  return -1;
+}
+
+
+int Map::find_C_spawn(){
+  for (int i = 0; i < Cells.size(); i++){
+    if (Cells[i].isCspawn){
+      return i;
+    }
+  }
+  return -1;
 }
