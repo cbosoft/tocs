@@ -3,6 +3,8 @@
 #include "map.h"
 #include "cell.h"
 
+typedef std::vector<Cell> celvec;
+
 Map::Map(){
   // Blank Constructor
 }
@@ -80,7 +82,8 @@ void Map::read_file(std::string mpath, bool verbose){
 }
 
 int Map::find_T_spawn(){
-  for (int i = 0; i < Cells.size(); i++){
+  int i = 0;
+  for (celvec::iterator it = Cells.begin(); it != Cells.end(); it++, i++){
     if (Cells[i].isTspawn){
       return i;
     }
@@ -90,7 +93,8 @@ int Map::find_T_spawn(){
 
 
 int Map::find_C_spawn(){
-  for (int i = 0; i < Cells.size(); i++){
+  int i = 0;
+  for (celvec::iterator it = Cells.begin(); it != Cells.end(); it++, i++){
     if (Cells[i].isCspawn){
       return i;
     }

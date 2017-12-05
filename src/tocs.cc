@@ -22,34 +22,39 @@
 //************************************************************************//
 typedef std::map<std::tuple<int, std::string >, int > utr;
 typedef std::vector<std::string> strvec;
+typedef std::vector<Player *> pplavec;
+typedef std::vector<Item *> pitmvec;
+typedef std::vector<Weapon *> pwpnvec;
+typedef std::string str;
+
 utr dictionary;
 Map game_map;
-std::vector<Player*> players;
-std::vector<Item> global_inventory;
-std::vector<Weapon> global_arsenal;
+pplavec players;
+pitmvec global_inventory;
+pwpnvec global_arsenal;
 strvec a_sitreps;
 strvec s_sitreps;
 strvec m_sitreps;
 strvec maps;
 strvec names;
-std::string pr_str = "  >";
+str pr_str = "  >";
 bool verbose = false;
 
 //************************************************************************//
 //** main "header" *******************************************************//
 //************************************************************************//
-void read_dictionary(std::string, utr &);
-void read_sitreps(std::string, strvec &, strvec &, strvec &);
-int get_clean_input(std::string, int);
-std::string get_raw_lower_input(std::string, bool);
+void read_dictionary(str, utr &);
+void read_sitreps(str, strvec &, strvec &, strvec &);
+int get_clean_input(str, int);
+str get_raw_lower_input(str, bool);
 int randint(int, int);
-std::string get_rand_sitrep(int);
-void get_maps(std::string, strvec &);
+str get_rand_sitrep(int);
+void get_maps(str, strvec &);
 void quick_setup();
 void game_loop();
-void read_inventory(std::string);
-void read_arsenal(std::string);
-void read_names(std::string);
+void read_inventory(str);
+void read_arsenal(str);
+void read_names(str);
 int game_status();
 void display();
 
@@ -59,17 +64,17 @@ namespace po = boost::program_options;
 //************************************************************************//
 int main(int argc, char *argv[]){
   srand(std::time(0));
-  std::string sitrep_file, inv_file, arsenal_file, names_file, maps_dir;
+  str sitrep_file, inv_file, arsenal_file, names_file, maps_dir;
 
   po::options_description desc("Allowed options");
   desc.add_options()
     ("help", "Show this help screen.")
     ("verbose,v", "show lots of info")
-    ("sitrep-file,s", po::value<std::string>(&sitrep_file)->default_value("dat/sitreps"), "location of the sitrep data file")
-    ("inv-file,i", po::value<std::string>(&inv_file)->default_value("dat/inv"), "location of the inv data file")
-    ("arsenal-file,a", po::value<std::string>(&arsenal_file)->default_value("dat/arsenal"), "location of the arsenal data file")
-    ("names-file,n", po::value<std::string>(&names_file)->default_value("dat/names"), "location of the names data file")
-    ("maps-file,m", po::value<std::string>(&maps_dir)->default_value("dat/maps"), "location of the maps directory")
+    ("sitrep-file,s", po::value<str>(&sitrep_file)->default_value("dat/sitreps"), "location of the sitrep data file")
+    ("inv-file,i", po::value<str>(&inv_file)->default_value("dat/inv"), "location of the inv data file")
+    ("arsenal-file,a", po::value<str>(&arsenal_file)->default_value("dat/arsenal"), "location of the arsenal data file")
+    ("names-file,n", po::value<str>(&names_file)->default_value("dat/names"), "location of the names data file")
+    ("maps-file,m", po::value<str>(&maps_dir)->default_value("dat/maps"), "location of the maps directory")
     ;
 
   po::variables_map vm;
@@ -124,7 +129,10 @@ int main(int argc, char *argv[]){
   if (players[0]->isCT){
     std::cout << "counter-";
   }
-  std::cout << "terrorist, codename: \"" << players[0]->Name << "\" on map: \"" << game_map.Name << "\" with " << players.size() << " players\n" << std::endl;
+  std::cout << "terrorist, codename: \"" << players[0]->Name
+	    << "\" on map: \"" << game_map.Name
+	    << "\" with " << players.size() << " players\n\n"
+	    << "  -------------------------------------------------------\n" << std::endl;
   
   // start game loop!
   game_loop();
@@ -170,15 +178,20 @@ void game_loop(){
 //************************************************************************//
 //************************************************************************//
 void display(){
-  std::cout << "  [" << game_map.timer << "s to go]  [HP:" << players[0]->HP << "]\n" << std::endl;
-  std::cout << "  " << players[0]->Position->Description << std::endl << "\n  ";
-  int plc = 0;
-  std::string inb = "";
-  std::vector<std::string> also_here;
+  std::cout << "  [" << game_map.timer << "s to go]"
+	    << "  [HP:" << players[0]->HP << "]"
+	    << "  [" << players[0]->Equipped->Name
+	    << " : " << players[0]->Equipped->AmmoLeft
+	    << " / " << players[0]->Equipped->AmmoMax << "]\n\n"
+	    << "  " << players[0]->Position->Description << "\n\n";
+  int plc = 0, i = 0, pltc = 0;
+  str inb = "";
+  strvec also_here;
   
-  for (size_t i = 1; i < players.size(); i++){
-    if (players[i]->Position->ID == players[0]->Position->ID){
+  for (pplavec::iterator it = players.begin(); it != players.end(); it++, i++){
+    if (players[i]->Position->ID == players[0]->Position->ID && i > 0){
       plc += 1;
+      pltc += 1;
       also_here.push_back(players[i]->Name);
     }
   }
@@ -191,21 +204,23 @@ void display(){
   }
   else{
     plc = 0;
-    std::cout << " ";
   }
-
-  for (int i = 0; i < also_here.size(); i++){
-    if (i > 1){
-      std::cout << ", " << also_here[i];
-    }
-    else if (i == (also_here.size() - 2)){
-      std::cout << ", and " << also_here[i];
-    }
-    else if (i == 0){
+  
+  i = 0;
+  for (strvec::iterator it = also_here.begin(); it != also_here.end(); it++, i++){
+    if (i == 0){
       std::cout << "  " << also_here[i];
     }
+    else if (i > 0){
+      if (i == (pltc - 1)){
+	std::cout << ", and " << also_here[i];
+      }
+      else{
+	std::cout << ", " << also_here[i];
+      }
+    }
   }
-  std::cout << " " << get_rand_sitrep(plc) << std::endl;
+  std::cout << " " << get_rand_sitrep(plc) << "\n\n  What would you like to do?\n" << std::endl;
 }
 
 //************************************************************************//
@@ -219,7 +234,7 @@ int game_status(){
 
     // All terrorists dead?
     bool all_t_dead = true;
-    for (int i = 1; i < players.size(); i++){
+    for (unsigned int i = 1; i < players.size(); i++){
       if (!players[i]->isCT && !players[i]->Dead()){
 	all_t_dead = false;
       }
@@ -242,7 +257,7 @@ int game_status(){
 
     // All CT dead?
     bool all_t_dead = true;
-    for (int i = 1; i < players.size(); i++){
+    for (unsigned int i = 1; i < players.size(); i++){
       if (!players[i]->isCT && !players[i]->Dead()){
 	all_t_dead = false;
       }
@@ -276,26 +291,31 @@ void quick_setup(){
     p = new Player;
     p->isCT = oe_team;
     p->Name = names[randint(int(names.size()), 0)];
+    std::cout << global_arsenal[0]->Name << std::endl;
+    p->Arsenal.push_back(&(*global_arsenal[0]));
+    p->Equipped = p->Arsenal[0];
     if (oe_team){
       p->Position = &game_map.Cells[cts];
     }
     else{
       p->Position = &game_map.Cells[ts];
     }
-    if (verbose){ std::cout << "  > created player \"" << p->Name << "\"" << std::endl;}
+    if (verbose){ std::cout << "  > spawned player \"" << p->Name << "\" in " << p->Position->Name << std::endl;}
     players.push_back(p);
   }
   for (int i = 0; i < nop; i++){
     p = new Player;
     p->isCT = !oe_team;
     p->Name = names[randint(names.size(), 0)];
+    p->Arsenal.push_back(&(*global_arsenal[0]));
+    p->Equipped = p->Arsenal[0];
     if (!oe_team){
       p->Position = &game_map.Cells[cts];
     }
     else{
       p->Position = &game_map.Cells[ts];
     }
-    if (verbose){ std::cout << "  > created player \"" << p->Name << "\"" << std::endl;}
+    if (verbose){ std::cout << "  > spawned player \"" << p->Name << "\" in " << p->Position->Name << std::endl;}
     players.push_back(p);
   }
 }
@@ -318,14 +338,15 @@ void read_names(std::string npath){
 void read_inventory(std::string ipath){
   std::string line;
   std::ifstream invf(ipath);
-  Item t_item;
+  Item* t_item;
   
   while(invf.good()){
+    t_item = new Item;
     std::getline(invf, line, ',');
     if (verbose){std::cout << "    > added item \"" << line << "\"" << std::endl;}
-    t_item.Name = line;
+    t_item->Name = line;
     std::getline(invf, line, '\n');
-    t_item.Mod = std::stoi(line);
+    t_item->Mod = std::stoi(line);
     global_inventory.push_back(t_item);
   }
 }
@@ -335,21 +356,31 @@ void read_inventory(std::string ipath){
 void read_arsenal(std::string apath){
   std::string line;
   std::ifstream arf(apath);
-  Weapon t_wep;
+  Weapon* t_wep;
   
   while(arf.good()){
+    t_wep = new Weapon;
+    //NAME , TYPE , COST , AMMO COST , DAM , ACC , CAP , ROF
     std::getline(arf, line, ',');
-    if (verbose){std::cout << "    > added weapon \"" << line << "\"" << std::endl;}
-    t_wep.Name = line;
+    t_wep->Name = line;
     std::getline(arf, line, ',');
-    t_wep.Type = line;
+    t_wep->Type = line;
     std::getline(arf, line, ',');
-    t_wep.Price = std::stoi(line);
+    t_wep->Price = std::stoi(line);
     std::getline(arf, line, ',');
-    t_wep.Accuracy = std::stoi(line);
+    t_wep->AmmoPrice = std::stoi(line);
+    std::getline(arf, line, ',');
+    t_wep->Damage = std::stoi(line);
+    std::getline(arf, line, ',');
+    t_wep->Accuracy = std::stoi(line);
+    std::getline(arf, line, ',');
+    t_wep->AmmoMax = std::stoi(line);
+    t_wep->AmmoLeft = std::stoi(line);
     std::getline(arf, line, '\n');
-    t_wep.Damage = std::stoi(line);
+    t_wep->ROF = std::stoi(line);
     global_arsenal.push_back(t_wep);
+    
+    if (verbose){std::cout << "    > added weapon \"" << t_wep->Name << "\"" << std::endl;}
   }
 }
 

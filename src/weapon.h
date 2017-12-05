@@ -12,8 +12,13 @@ class Weapon {
   std::string Name;
   std::string Type;
   int Price;
-  int Accuracy;
   int Damage;
+  int Accuracy;
+  int Capacity;
+  int AmmoLeft;
+  int AmmoMax;
+  int AmmoPrice;
+  int ROF;
   
   // Methods
   Weapon();
