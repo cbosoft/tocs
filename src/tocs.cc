@@ -233,6 +233,7 @@ void display(){
       }
     }
   }
+  if (plc == 0){std::cout << " ";}
   std::cout << " " << get_rand_sitrep(plc) << "\n\n  What would you like to do?\n" << std::endl;
 }
 
@@ -329,7 +330,7 @@ void quick_setup(){
     else{
       p->Position = &game_map.Cells[ts];
     }
-    if (verbose){ std::cout << "  > spawned player \"" << p->Name << "\" in " << p->Position->Name << std::endl;}
+    if (verbose){ std::cout << "    > spawned player \"" << p->Name << "\" in " << p->Position->Name << std::endl;}
     players.push_back(p);
   }
   for (int i = 0; i < nop; i++){
@@ -346,7 +347,7 @@ void quick_setup(){
     else{
       p->Position = &game_map.Cells[ts];
     }
-    if (verbose){ std::cout << "  > spawned player \"" << p->Name << "\" in " << p->Position->Name << std::endl;}
+    if (verbose){ std::cout << "    > spawned player \"" << p->Name << "\" in " << p->Position->Name << std::endl;}
     players.push_back(p);
   }
 }
@@ -465,7 +466,7 @@ void get_maps(std::string map_dir, strvec &maps){
 //************************************************************************//
 void sort_input(int retv){
   if (retv > 0 && retv <= 8){
-    if (move(players[0], retv - 1)){
+    if (move(players[0], retv - 1) > 0){
       pl_la = " moved ";
       game_map.timer -= 2;
     }
@@ -529,8 +530,11 @@ Cell* find_cell(int id){
 //************************************************************************//
 //************************************************************************//
 int move(Player* p, int direction){
+  p->AccMod_in = 1.0;
+  p->AccMod_out = 1.0;
   int dest_id = p->Position->Directions[direction];
-  if (dest_id > 0){
+  if (dest_id >= 0){
+    std::cout << dest_id << std::endl;
     p->Position = find_cell(dest_id);
     return 1;
   }
@@ -542,6 +546,8 @@ int move(Player* p, int direction){
 //************************************************************************//
 //************************************************************************//
 int kill_with(Player* p, int weapon){
+  p->AccMod_in = 1.0;
+  p->AccMod_out = 1.0;
   std::vector<Player*> pop;
   Player* tohit;
   int popc = 0;
@@ -605,12 +611,14 @@ int equip(Player* p, int weapon){
   }
 
   p->Equipped = global_arsenal[weapon];
+  return 1;
 }
 
 //************************************************************************//
 //************************************************************************//
 void hide(Player* p){
   p->AccMod_in = 0.8;
+  p->AccMod_out = 0.6;
 }
 
 
@@ -618,12 +626,38 @@ void hide(Player* p){
 //************************************************************************//
 void camp(Player* p){
   p->AccMod_in = 1.1;
+  p->AccMod_out = 1.02;
 }
 
 //************************************************************************//
 //************************************************************************//
 void buy(){
+  bool done = false;
+
+  while (!done){
+    // show buy screen
+    std::cout
+      << std::setw(10) << " Name "
+      << std::setw(10) << " Type "
+      << std::setw(10) << " Price "
+      << std::setw(10) << " Ammo Price "
+      << std::endl;
+    for (auto it: global_arsenal){
+      std::cout
+	<< std::setw(10) << it->Name
+	<< std::setw(10) << it->Type
+	<< std::setw(10) << it->Price
+	<< std::setw(10) << it->AmmoPrice
+	<< std::endl;
+    }
+    
+    done = true;
+  }
 }
+
+//************************************************************************//
+//************************************************************************//
+
 
 //************************************************************************//
 //************************************************************************//
