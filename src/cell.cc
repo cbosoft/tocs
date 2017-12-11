@@ -19,3 +19,4 @@ Cell::Cell(int id, std::string name, std::string desc, bool tspawn, bool cspawn,
   isBombB = bombb;
   Directions = dirs;
 }
+
