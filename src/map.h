@@ -12,6 +12,11 @@ class Map {
   // Variables
   std::string Name;
   std::vector<Cell> Cells;
+  bool abomb_planted;
+  bool bbomb_planted;
+  int abomb_timer = 5;
+  int bbomb_timer = 5;
+  int timer = 180;
   
   // Methods
   Map();
@@ -20,9 +25,4 @@ class Map {
   void read_file(std::string, bool v);
   int find_C_spawn();
   int find_T_spawn();
-  bool abomb_planted;
-  bool bbomb_planted;
-  int abomb_timer = 5;
-  int bbomb_timer = 5;
-  int timer = 180;
 };
