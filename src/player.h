@@ -18,6 +18,7 @@ class Player {
   // Variables
   int HP;
   int Money;
+  std::vector<int> Ammobelt;
   std::string Name;
   bool isCT;
   Cell* Position;
@@ -32,6 +33,4 @@ class Player {
   // Methods
   Player();
   ~Player();
-
-  
 };
