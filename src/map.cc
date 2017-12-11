@@ -45,6 +45,8 @@ void Map::read_file(std::string mpath, bool verbose){
     t_cell.isBombA = false;
     t_cell.isBombB = false;
 
+    t_cell.Directions.clear();
+    
     for (int i = 0; i < 7; i++){
       std::getline(mapf, line, ',');
       //std::cout << line << std::endl;
@@ -74,8 +76,13 @@ void Map::read_file(std::string mpath, bool verbose){
 	if (verbose){std::cout << " [" << line << "]" << std::flush;}
       }
     }
-    
-    if (verbose){std::cout << std::endl;}
+    if (verbose){
+      std::cout << " [";
+      for (int i = 0; i < 7; i++){
+	std::cout << t_cell.Directions[i] << ", ";
+      }
+      std::cout << t_cell.Directions[7] << "] " << std::endl;
+    }
     t_cell.ID = Cells.size();
     Cells.push_back(t_cell);
   }
