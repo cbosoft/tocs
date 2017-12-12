@@ -38,9 +38,22 @@ strvec m_sitreps;
 strvec maps;
 strvec names;
 str pr_str = "  >";
-str pl_la = " -- ";
 bool verbose = false;
 bool friendly_fire = false;
+std::vector<std::tuple<double, std::string > > messages; 
+
+//************************************************************************//
+//* what time is it? *****************************************************//
+//************************************************************************//
+double time_to_move = 0.8;
+double time_to_kill = 1.2;
+double time_to_kill_penalty = 0.5;
+double time_to_equip = 0.6;
+double time_to_hide = 2.5;
+double time_to_camp = 3.2;
+double time_to_buy = 0.8;
+double time_to_fup = 0.1;
+double time_to_plant = 12.8;
 
 //************************************************************************//
 //** main "header" *******************************************************//
@@ -61,13 +74,17 @@ int game_status();
 void display();
 void sort_input(int);
 int move(Player*, int);
-int kill_with(Player*, int);
+int kill_with(Player*, int, bool);
 int equip(Player*, int);
 void camp(Player*);
 void hide(Player*);
-void buy();
+int buy();
 void ai_buy(Player*, int, int);
+int plant();
 int equipped_ammo_left(Player*);
+void add_message(std::string, double);
+void add_message_quick(std::string);
+void add_message_important(std::string);
 
 namespace po = boost::program_options;
 
@@ -142,8 +159,7 @@ int main(int argc, char *argv[]){
   }
   std::cout << "terrorist, codename: \"" << players[0]->Name
 	    << "\" on map: \"" << game_map.Name
-	    << "\" with " << players.size() << " players\n\n"
-	    << "  -------------------------------------------------------\n" << std::endl;
+	    << "\" with " << players.size() << " players\n" <<  std::endl;
   
   // start game loop!
   game_loop();
@@ -188,15 +204,51 @@ void game_loop(){
 
 //************************************************************************//
 //************************************************************************//
+void add_message(std::string m_text, double endsat){
+  auto m = std::make_tuple(endsat, m_text);
+  messages.push_back(m);
+}
+
+//************************************************************************//
+//************************************************************************//
+void add_message_quick(std::string m_text){
+  add_message(m_text, game_map.timer - 0.1);
+}
+
+//************************************************************************//
+//************************************************************************//
+void add_message_important(std::string m_text){
+  add_message(m_text, game_map.timer - 10.0);
+}
+
+//************************************************************************//
+//************************************************************************//
 void display(){
   std::cout << "  -------------------------------------------------------\n\n";
-  std::cout << "  [" << game_map.timer << "s to go]"
+  std::cout << "  [" << ((int)game_map.timer) << "s to go]"
 	    << "  [HP:" << players[0]->HP << "]"
 	    << "  [" << players[0]->Equipped->Name
 	    << " : " << equipped_ammo_left(players[0])
-	    << " / " << players[0]->Equipped->AmmoMax << "]"
-	    << "  [" << pl_la << "]\n\n"
-	    << "  " << players[0]->Position->Description << "\n\n";
+	    << " / " << players[0]->Equipped->AmmoMax << "]\n\n";
+
+  int mc = 0;
+  double m_time;
+  std::string m;
+  for (auto message: messages){
+    m_time = std::get<0>(message);
+
+    if (m_time >= game_map.timer){
+      messages.erase(messages.begin() + mc);
+    }
+    mc += 1;
+  }
+  
+  for (auto message: messages){
+    m = std::get<1>(message);
+    std::cout << "  " << pr_str << m << std::endl << std::endl;
+  }
+  
+  std::cout << "  " << players[0]->Position->Description << "\n\n";
   int plc = 0, i = 0, pltc = 0;
   str inb = "";
   strvec also_here;
@@ -272,8 +324,8 @@ int game_status(){
       return 1;
 
     // Bomb gone off?
-    if ((game_map.abomb_planted && game_map.abomb_timer == 0) ||
-	(game_map.bbomb_planted && game_map.bbomb_timer == 0)) {
+    if ((game_map.abomb_planted && game_map.abomb_dline >= game_map.timer) ||
+	(game_map.bbomb_planted && game_map.bbomb_dline >= game_map.timer)) {
       return -2;
     }
 
@@ -295,8 +347,8 @@ int game_status(){
       return 1;
 
     // Bomb gone off?
-    if ((game_map.abomb_planted && game_map.abomb_timer == 0) ||
-	(game_map.bbomb_planted && game_map.bbomb_timer == 0)) {
+    if ((game_map.abomb_planted && game_map.abomb_dline >= game_map.timer) ||
+	(game_map.bbomb_planted && game_map.bbomb_dline >= game_map.timer)) {
       return 2;
     }
 
@@ -467,48 +519,110 @@ void get_maps(std::string map_dir, strvec &maps){
 void sort_input(int retv){
   if (retv > 0 && retv <= 8){
     if (move(players[0], retv - 1) > 0){
-      pl_la = " moved ";
-      game_map.timer -= 2;
+      game_map.timer -= time_to_move;
+      //add_message_quick(" moved ");
     }
     else{
-      pl_la = " cannot move there! ";
+      game_map.timer -= time_to_fup;
+      add_message_quick(" cannot move there! ");
     }
   }
   else if (retv > 8 && retv <= 29){
-    int res = kill_with(players[0], retv - 9);
+    int res = kill_with(players[0], retv - 9, (retv == 9));
 
     if (res == 2){
-      pl_la = " you shot accurately ";
-      game_map.timer -= 1;
+      game_map.timer -= time_to_kill;
+      add_message_quick(" you shot accurately ");
     }
     else if (res == 1){
-      pl_la = " you shot ";
-      game_map.timer -= 1;
+      game_map.timer -= time_to_kill;
+      //add_message_quick(" you shot ");
     }
     else if (res == -1){
-      pl_la = " you don't have that ";
+      game_map.timer -= time_to_fup;
+      add_message_quick(" you don't have that ");
     }
     else{
-      pl_la = " you missed ";
-      game_map.timer -= 1;
+      game_map.timer -= time_to_kill;
+      add_message_quick(" you missed ");
     }
   }
-  else if (retv > 29 && retv <= 50){
-    pl_la = " e ";
-    equip(players[0], retv - 30);
+  else if (retv > 29 && retv < 50){
+    int res;
+    res = equip(players[0], retv - 30);
+
+    switch (res){
+    case 1:
+      game_map.timer -= time_to_equip;
+      //add_message_quick(" successfully equipped ");
+      break;
+    case -1:
+      game_map.timer -= time_to_fup;
+      add_message_quick(" you don't have that ");
+      break;
+    }
   }
   else if (retv == 50){
-    pl_la = " h ";
+    game_map.timer -= time_to_hide;
     hide(players[0]);
-    game_map.timer -= 3;
+    add_message_quick(" hiding ");
   }
   else if (retv == 51){
-    pl_la = " c ";
+    game_map.timer -= time_to_camp;
     camp(players[0]);
+    add_message_quick(" camping ");
   }
   else if (retv == 52){
-    pl_la = " b ";
-    buy();
+    int res = buy();
+
+    if (game_map.timer > 176){
+      game_map.timer -= time_to_buy;
+      switch (res){
+      case -4:
+	add_message_quick(" buying cancelled ");
+	break;
+      case -3:
+	add_message_quick(" you are maxed out! ");
+	break;
+      case -2:
+	add_message_quick(" you already have that ");
+	break;
+      case -1:
+	add_message_quick(" you cannot afford that ");
+	break;
+      case 1:
+	add_message_quick(" successful purchase! ");
+	break;
+      }
+    }
+    else {
+      game_map.timer -= time_to_fup;
+      add_message_quick(" its too late to buy! ");
+    }
+  }
+  else if (retv == 53){
+    int res;
+    res = plant(); // time decrement is handled here
+    switch (res){
+    case -4:
+      add_message_quick(" you stoppped setting the bomb ");
+      break;
+    case -3:
+      add_message_quick(" you are not a terrorist ");
+      break;
+    case -2:
+      add_message_quick(" you do not have a bomb ");
+      break;
+    case -1:
+      add_message_quick(" you are not at a bomb-site ");
+      break;
+    case 1:
+      add_message_important(" !! the bomb has been planted !! ");
+      break;
+    case 2:
+      add_message_quick(" you are planting the bomb ");
+      break;
+    }
   }
 }
 
@@ -545,7 +659,7 @@ int move(Player* p, int direction){
 
 //************************************************************************//
 //************************************************************************//
-int kill_with(Player* p, int weapon){
+int kill_with(Player* p, int weapon, bool iseq){
   p->AccMod_in = 1.0;
   p->AccMod_out = 1.0;
   std::vector<Player*> pop;
@@ -589,9 +703,11 @@ int kill_with(Player* p, int weapon){
     return -2;
   }
   else if ((hitp > 0.0) && (hitp < 1.0)){
+    if (!iseq){game_map.timer -= 1;}
     return 1;
   }
   else{
+    if (!iseq){game_map.timer -= 1;}
     return 2;
   }
 }
@@ -631,37 +747,103 @@ void camp(Player* p){
 
 //************************************************************************//
 //************************************************************************//
-void buy(){
+int buy(){
   bool done = false;
-
+  
   while (!done){
+    int c = 1;
     // show buy screen
     std::cout
-      << std::setw(10) << " Name "
-      << std::setw(10) << " Type "
-      << std::setw(10) << " Price "
-      << std::setw(10) << " Ammo Price "
+      << std::setw(4) << "ID" << std::endl
+      << std::setw(32) << "Name"
+      << std::setw(10) << "Type"
+      << std::setw(10) << "Price"
+      << std::setw(14) << "Ammo Price"
       << std::endl;
     for (auto it: global_arsenal){
       std::cout
-	<< std::setw(10) << it->Name
+	<< std::setw(4) << c
+	<< std::setw(32) << it->Name
 	<< std::setw(10) << it->Type
 	<< std::setw(10) << it->Price
-	<< std::setw(10) << it->AmmoPrice
+	<< std::setw(14) << it->AmmoPrice
 	<< std::endl;
+      c += 1;
     }
-    
-    done = true;
+    int retv;
+    retv = get_clean_input(pr_str, 3);
+    if (retv > 0 && retv <= 20){
+      // Can player afford it?
+      if (players[0]->Money > global_arsenal[retv - 1]->Price){
+	// Does player already have it?
+	for (auto w: players[0]->Arsenal){
+	  if (w == global_arsenal[retv - 1]){
+	    return -2;
+	  }
+	}
+	// Cool, buy it!
+	players[0]->Arsenal.push_back(global_arsenal[retv - 1]);
+	players[0]->Money -= global_arsenal[retv - 1]->Price;
+	players[0]->Ammobelt[(retv - 1)] = global_arsenal[retv - 1]->AmmoMax;
+	done = true;
+      }
+      else{
+	return -1;
+      }
+    }
+    else if (retv > 20 && retv <= 40){
+      // Can player afford it?
+      if (players[0]->Money > global_arsenal[retv - 21]->AmmoPrice){
+	// Does player already have it?
+	if (players[0]->Ammobelt[retv - 21] == global_arsenal[retv - 21]->AmmoMax){
+	  return -3;
+	}
+	
+	// Cool, buy it!
+	players[0]->Money -= global_arsenal[retv - 21]->AmmoPrice;
+	players[0]->Ammobelt[(retv - 21)] = global_arsenal[retv - 21]->AmmoMax;
+	done = true;
+      }
+      else{
+	return -1;
+      }
+    }
+    else if (retv == 41){
+      return -4;
+    }
   }
+  return 1;
 }
 
 //************************************************************************//
 //************************************************************************//
-
-
-//************************************************************************//
-//************************************************************************//
 void ai_buy(Player* p, int index, int type){
+}
+
+//************************************************************************//
+//************************************************************************//
+int plant(){
+
+  // plant bomb
+
+  // is terrorist?
+  // is at bomb site?
+
+  // plant
+
+  // if not planting:
+  //   set to planting
+  //   increment plant timer by 1.2s
+
+  // if planting and plant timer not at 12s:
+  //   increment plant timer by 1.2s
+
+  // if planting and plant timer >= 12s: (i.e. is finished)
+  //   start bomb timer for the plant site
+  //   set to not planting
+
+  return 2;
+  
 }
 
 //************************************************************************//
@@ -682,8 +864,37 @@ int get_clean_input(std::string prompt, int context){
 
     retv = dictionary[std::make_tuple(context, inp_raw)];
     
-    if (retv > 0){
+    if (retv > 0 && retv != 99){
       isokay = true;
+    }
+    else if (retv == 99){
+      // show help
+      switch (context){
+      case 0:
+	std::cout
+	  << "\n  It ain't rocket science. 'new game', or \n"
+	  << "  'quick game'\n" << std::endl;
+	break;
+      case 1:
+	std::cout
+	  << "\n  ... really? 't' for terrorists, 'c' for \n"
+	  << "  counter-terrorists\n" << std::endl;
+	break;
+      case 2:
+	std::cout
+	  << "\n  Cardinal directions (north, east, south, west) to move, \n"
+	  << "  combinations work too. \n\n"
+	  << "  'kill' to use your currently equipped weapon, or \n"
+	  << "  equip <name> to change equipped weapon. You can also\n"
+	  << "  'camp' if you want to kill time, or 'hide' if you\n"
+	  << "  wanna be all sneaky like.\n" << std::endl;
+	break;
+      case 3:
+	std::cout
+	  << "  'buy <name>' to buy, 'buy ammo <name>' to buy ammo."
+	  << std::endl;
+	break;
+      }
     }
     else{
       isfirst = false;
