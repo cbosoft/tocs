@@ -14,9 +14,9 @@ class Map {
   std::vector<Cell> Cells;
   bool abomb_planted;
   bool bbomb_planted;
-  int abomb_timer = 5;
-  int bbomb_timer = 5;
-  int timer = 180;
+  double abomb_dline = 181.0;
+  double bbomb_dline = 181.0;
+  double timer = 180.0;
   
   // Methods
   Map();
