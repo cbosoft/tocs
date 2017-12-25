@@ -14,7 +14,15 @@ obj/%.o: src/%.cc
 ############################################################
 ############################################################
 
+GAME=\
+obj/game.o\
+obj/game_io.o\
+obj/game_display.o\
+obj/game_actions.o\
+obj/game_ai.o
+
 TOCS =\
+$(GAME)\
 obj/tocs.o\
 obj/map.o\
 obj/player.o\
