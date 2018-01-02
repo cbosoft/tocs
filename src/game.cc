@@ -12,26 +12,31 @@ void Game::game_loop(){
     sort_input(get_clean_input(pr_str, 2));
   }
 
+  std::cout << pr_str << "game over\n\n";
+  if (status < 0){
+    std::cout << pr_str << "YOU LOST\n\n";
+  }
+  else {
+    std::cout << pr_str << "YOU WON!\n\n";
+  }
+  status = std::abs(status);
+  
   switch (status) {
-  case -4:
-    // Player quit
-    break;
-  case -3:
-    // Time ran out: Counter Terrorists (!Player) win.
-  case -2:
-    // Bomb went off: Terrorists (!Player) win.
-    break;
-  case -1:
-    // Player died.
-    break;
   case 1:
-    // All terrorists dead: Counter Terrorists (+Player) win.
+    // All terrorists dead: Counter Terrorists win.
+    std::cout << pr_str << "Terrorists neutralised: Counter-Terrorists win";
     break;
   case 2:
-    // Bomb went off: Terrorists (+Player) win.
+    // Bomb went off: Terrorists win.
+    std::cout << pr_str << "the bomb went off: Terrorists win";
     break;
   case 3:
-    // Time ran out: Counter Terrorists (+Player) win.
+    // Time ran out: Counter Terrorists win.
+    std::cout << pr_str << "ran out of time: Counter-Terrorists win";
+    break;
+  case 4:
+    // Player quit
+    std::cout << pr_str << "you quit";
     break;
   }
 }
@@ -226,9 +231,6 @@ void Game::sort_input(int retv){
     int res;
     res = plant(); // time decrement is handled here
     switch (res){
-    case -4:
-      add_message_quick(" you stoppped setting the bomb ");
-      break;
     case -3:
       add_message_quick(" you are not a terrorist ");
       break;
@@ -237,12 +239,6 @@ void Game::sort_input(int retv){
       break;
     case -1:
       add_message_quick(" you are not at a bomb-site ");
-      break;
-    case 1:
-      add_message_important(" !! the bomb has been planted !! ");
-      break;
-    case 2:
-      add_message_quick(" you are planting the bomb ");
       break;
     }
   }

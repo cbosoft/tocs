@@ -180,22 +180,45 @@ int Game::plant(){
 
   // plant bomb
 
-  // is terrorist?
+  // is terrorist
   // is at bomb site?
+  if (players[0]->plant_timer > 0) {
+    players[0]->plant_timer -= 1;
 
-  // plant
+    if (players[0]->plant_timer <= 0){
+      // planted
+      if (players[0]->Position->isBombA) {
+	game_map.abomb_planted = true;
+	game_map.abomb_dline = game_map.timer - time_to_blow;
+      }
+      else if (players[0]->Position->isBombB) {
+	game_map.bbomb_planted = true;
+	game_map.bbomb_dline = game_map.timer - time_to_blow;
+      }
+      else {
+	// HOW?!
+      }
 
-  // if not planting:
-  //   set to planting
-  //   increment plant timer by 1.2s
+      add_message_important("The bomb has been planted!");
+    }
+    
+  }
+  else if (!players[0]->isCT){
+    if (players[0]->Position->isBombA || players[0]->Position->isBombB){
+      // do planting
+      players[0]->plant_timer = 12;
+      add_message_quick("you are planting a bomb");
+      game_map.timer -= time_to_plant;
+    }
+    else{
+      game_map.timer -= time_to_fup;
+      return -1;
+    }
+  }
+  else{
+    game_map.timer -= time_to_fup;
+    return -3;
+  }
 
-  // if planting and plant timer not at 12s:
-  //   increment plant timer by 1.2s
-
-  // if planting and plant timer >= 12s: (i.e. is finished)
-  //   start bomb timer for the plant site
-  //   set to not planting
-
-  return 2;
-  
+  return 2;  
 }

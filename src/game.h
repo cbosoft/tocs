@@ -39,7 +39,8 @@ class Game{
   double time_to_camp = 3.2;
   double time_to_buy = 0.8;
   double time_to_fup = 0.1;
-  double time_to_plant = 12.8;
+  double time_to_plant = 1.1;
+  double time_to_blow = 23.5;
   
   // Methods
   void read_dictionary(std::string, std::map<std::tuple<int, std::string >, int > &);

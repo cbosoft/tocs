@@ -27,7 +27,13 @@ void Game::display(){
 	    << "  [HP:" << players[0]->HP << "]"
 	    << "  [" << players[0]->Equipped->Name
 	    << " : " << equipped_ammo_left(players[0])
-	    << " / " << players[0]->Equipped->AmmoMax << "]\n\n";
+	    << " / " << players[0]->Equipped->AmmoMax << "] ";
+
+  if (players[0]->Position->isBombA || players[0]->Position->isBombB) {
+    std::cout << " [BOMBSITE] ";
+  }
+
+  std::cout << "\n\n";
 
   int mc = 0;
   double m_time;
