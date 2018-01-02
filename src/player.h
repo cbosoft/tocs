@@ -21,6 +21,7 @@ class Player {
   std::vector<int> Ammobelt;
   std::string Name;
   bool isCT;
+  bool plant_timer;
   Cell* Position;
   bool Dead();
   double AccMod_in = 1.0,

@@ -3,6 +3,7 @@
 
 Player::Player(){
   HP = 100;
+  plant_timer = 0;
 }
 Player::~Player(){}
 

@@ -17,19 +17,18 @@ int main(int argc, char *argv[]){
 
   po::options_description desc("Allowed options");
   desc.add_options()
-    ("help", "Show this help screen.")
-    ("verbose,v", "show lots of info")
-    ("sitrep-file,s", po::value<std::string>(&sitrep_file)->default_value("dat/sitreps"), "location of the sitrep data file")
-    ("inv-file,i", po::value<std::string>(&inv_file)->default_value("dat/inv"), "location of the inv data file")
+    ("help",                                                                                "Show this help screen.")
+    ("verbose,v",                                                                           "show lots of info")
+    ("sitrep-file,s",  po::value<std::string>(&sitrep_file)->default_value("dat/sitreps"),  "location of the sitrep data file")
+    ("inv-file,i",     po::value<std::string>(&inv_file)->default_value("dat/inv"),         "location of the inv data file")
     ("arsenal-file,a", po::value<std::string>(&arsenal_file)->default_value("dat/arsenal"), "location of the arsenal data file")
-    ("names-file,n", po::value<std::string>(&names_file)->default_value("dat/names"), "location of the names data file")
-    ("maps-file,m", po::value<std::string>(&maps_dir)->default_value("dat/maps"), "location of the maps directory")
+    ("names-file,n",   po::value<std::string>(&names_file)->default_value("dat/names"),     "location of the names data file")
+    ("maps-file,m",    po::value<std::string>(&maps_dir)->default_value("dat/maps"),        "location of the maps directory")
     ;
 
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
   po::notify(vm);
-
   if (vm.count("help")){
     std::cerr << desc << std::endl;
     return 0;
@@ -43,7 +42,6 @@ int main(int argc, char *argv[]){
     std::cout << "" << std::endl;
     std::cout << "  reading data" << std::endl;
   }
-
   game.read_dictionary("dat/dict", game.dictionary);
   game.read_sitreps(sitrep_file, game.a_sitreps, game.s_sitreps, game.m_sitreps);
   game.read_inventory(inv_file);
