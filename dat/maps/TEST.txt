@@ -12,6 +12,7 @@ endcell
 Cell2
 DOOR TO WEST
 -1,-1,-1,-1,-1,-1,1,-1
+bomba
 endcell
 Cell3
 DOOR TO NORTH
@@ -20,5 +21,6 @@ endcell
 Cell4
 DOOR TO EAST
 -1,-1,1,-1,-1,-1,-1,-1
+bombb
 endcell
 endmap
